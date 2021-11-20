@@ -1,10 +1,11 @@
 {
   "type": "number",
   "title": {
-    "en": "m³ prev. hour",
+    "en": "Prev. hour",
     "nl": "m³ vorig uur"
   },
-  "uiComponent": null,
+  "uiComponent": "sensor",
+  "icon": "/assets/m3_h.svg",
   "getable": true,
   "setable": false,
   "insights": true,

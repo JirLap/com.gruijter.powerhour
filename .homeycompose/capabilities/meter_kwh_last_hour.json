@@ -1,10 +1,11 @@
 {
   "type": "number",
   "title": {
-    "en": "kWh prev. hour",
-    "nl": "kWh vorig uur"
+    "en": "Prev. hour",
+    "nl": "Vorig uur"
   },
-  "uiComponent": null,
+  "uiComponent": "sensor",
+  "icon": "/assets/kwh_h.svg",
   "getable": true,
   "setable": false,
   "insights": true,

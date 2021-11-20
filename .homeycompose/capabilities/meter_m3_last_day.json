@@ -1,10 +1,11 @@
 {
   "type": "number",
   "title": {
-    "en": "m³ prev. day",
-    "nl": "m³ vorige dag"
+    "en": "Prev. day",
+    "nl": "Vorige dag"
   },
-  "uiComponent": null,
+  "uiComponent": "sensor",
+  "icon": "/assets/m3_d.svg",
   "getable": true,
   "setable": false,
   "insights": true,

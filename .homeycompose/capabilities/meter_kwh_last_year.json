@@ -1,10 +1,11 @@
 {
   "type": "number",
   "title": {
-    "en": "kWh prev. year",
-    "nl": "kWh vorig jaar"
+    "en": "Prev. year",
+    "nl": "Vorig jaar"
   },
-  "uiComponent": null,
+  "uiComponent": "sensor",
+  "icon": "/assets/kwh_y.svg",
   "getable": true,
   "setable": false,
   "insights": true,

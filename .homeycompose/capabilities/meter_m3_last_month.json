@@ -1,10 +1,11 @@
 {
   "type": "number",
   "title": {
-    "en": "m³ prev. month",
-    "nl": "m³ vorige maand"
+    "en": "Prev. month",
+    "nl": "Vorige maand"
   },
-  "uiComponent": null,
+  "uiComponent": "sensor",
+  "icon": "/assets/m3_m.svg",
   "getable": true,
   "setable": false,
   "insights": true,

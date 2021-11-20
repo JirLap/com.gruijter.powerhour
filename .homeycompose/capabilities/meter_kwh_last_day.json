@@ -1,10 +1,11 @@
 {
   "type": "number",
   "title": {
-    "en": "kWh prev. day",
-    "nl": "kWh vorige dag"
+    "en": "Prev. day",
+    "nl": "Vorige dag"
   },
-  "uiComponent": null,
+  "uiComponent": "sensor",
+  "icon": "/assets/kwh_d.svg",
   "getable": true,
   "setable": false,
   "insights": true,

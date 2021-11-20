@@ -1,10 +1,11 @@
 {
   "type": "number",
   "title": {
-    "en": "m³ prev. year",
+    "en": "Prev. year",
     "nl": "m³ vorig jaar"
   },
-  "uiComponent": null,
+  "uiComponent": "sensor",
+  "icon": "/assets/m3_y.svg",
   "getable": true,
   "setable": false,
   "insights": true,
