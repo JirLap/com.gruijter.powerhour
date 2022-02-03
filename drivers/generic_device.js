@@ -233,6 +233,7 @@ class SumMeterDevice extends Device {
 			this.lastReadingDay = this.getStoreValue('lastReadingDay');
 			this.lastReadingMonth = this.getStoreValue('lastReadingMonth');
 			this.lastReadingYear = this.getStoreValue('lastReadingYear');
+			this.log("...lastReadingHour:"+this.lastReadingHour)
 			// check pair init
 			const pairInit = (!this.lastReadingHour || !this.lastReadingDay || !this.lastReadingMonth || !this.lastReadingYear);
 			if (pairInit) {
