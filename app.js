@@ -21,10 +21,12 @@ along with com.gruijter.powerhour.  If not, see <http://www.gnu.org/licenses/>.
 
 const Homey = require('homey');
 const { HomeyAPI } = require('athom-api');
+const { Log } = require('homey-log');
 
 class MyApp extends Homey.App {
 
 	async onInit() {
+		this.homeyLog = new Log({ homey: this.homey });
 		try {
 			// register some listeners
 			process.on('unhandledRejection', (error) => {

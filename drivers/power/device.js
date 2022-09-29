@@ -40,7 +40,7 @@ class sumDriver extends GenericDevice {
 	onInit() {
 		this.ds = deviceSpecifics;
 		this.lastVal = this.getStoreValue('lastReadingHour');
-		if (!this.lastVal) this.lastVal = 0;
+		if (!this.lastVal || isNaN(this.lastVal)) this.lastVal = 0;
 		this.lastTime = Date.now();
 		this.log("Restored last value:" + this.lastVal)
 		this.onInitDevice();
@@ -49,6 +49,7 @@ class sumDriver extends GenericDevice {
 	// driver specific stuff below
 
 	async addListeners() {
+		//this.setMaxListeners(100);
 		// make listener for meter_power
 		if (this.sourceDevice.capabilities.includes('meter_power')) {
 			this.log(`registering meter_power capability listener for ${this.sourceDevice.name}`);
@@ -79,11 +80,12 @@ class sumDriver extends GenericDevice {
 	updateMeasure(value) {
 		//this.log("Update measure to:" + value)
 		const _time = Date.now();
-		//if (!this.lastVal) this.lastVal = this.getCapabilityValue('meter_kwh_this_hour');
-		const _diffTime = parseFloat((_time - this.lastTime));
-		const _newVal = this.lastVal + parseFloat(value / 1000 * _diffTime / 1000 / 60 / 60);
-		this.log(`${this.getName()} - new measure value: ${value}, newVal: ${_newVal}, diffTime: ${_diffTime}`);
-		this.updateMeter(Math.round(_newVal * 100) / 100);
+		//if (!this.lastVal) this.lastVal = 0;
+		const _diffTime = parseFloat(_time - this.lastTime);
+		const _newVal = parseFloat(this.lastVal) + parseFloat(value) / 1000 * _diffTime / 1000 / 60 / 60;
+		const _roundVal = Math.round(_newVal * 100) / 100;
+		//this.log(`${this.getName()} - new measure value: ${value}, lastVal:${this.lastVal}, roundVal: ${_roundVal}, diffTime: ${_diffTime}`);
+		this.updateMeter(_roundVal);
 		this.lastTime = _time;
 		this.lastVal = _newVal;
 	}

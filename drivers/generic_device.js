@@ -34,7 +34,8 @@ class SumMeterDevice extends Device {
 			this.restarting = false;
 			await this.migrate();
 			this.destroyListeners();
-			this.emptyLastReadings();
+			this.restoreValues();
+			//this.setMaxListeners(255);
 			this.lastUpdated = 0;
 			this.timeZone = this.homey.clock.getTimezone();
 			this.sourceDevice = await this.homey.api.devices.getDevice({ id: this.getSettings().homey_device_id });
@@ -59,7 +60,7 @@ class SumMeterDevice extends Device {
 			this.startMonth -= 1; // January is month 0
 
 			// start poll mode or realtime capability listeners
-			const { interval } = this.getSettings();
+			const { interval } = this.getSettings().interval;
 			if (interval) { this.startPolling(interval); } else this.addListeners();
 
 			// do immediate forced update
@@ -164,11 +165,12 @@ class SumMeterDevice extends Device {
 		}, 1000 * 60 * interval);
 	}
 
-	emptyLastReadings() {
-		this.lastReadingHour = null;
-		this.lastReadingDay = null;
-		this.lastReadingMonth = null;
-		this.lastReadingYear = null;
+	restoreValues() {
+		this.log(`${this.getName()} restoring last values after app init`);
+		this.lastReadingHour = this.getStoreValue('lastReadingHour');
+		this.lastReadingDay = this.getStoreValue('lastReadingDay');
+		this.lastReadingMonth = this.getStoreValue('lastReadingMonth');
+		this.lastReadingYear = this.getStoreValue('lastReadingYear');
 	}
 
 	setCapability(capability, value) {
@@ -184,8 +186,8 @@ class SumMeterDevice extends Device {
 	}
 
 	getReadingObject(value) {
-		const date = new Date();
-		const dateLocal = new Date(date.toLocaleString('en-UK', { timeZone: this.timeZone }));
+		const dateLocal = new Date();
+		// const dateLocal = new Date(date.toLocaleString('en-UK', { timeZone: this.timeZone }));
 		const reading = {
 			hour: dateLocal.getHours(),
 			day: dateLocal.getDate(),
@@ -225,40 +227,42 @@ class SumMeterDevice extends Device {
 	}
 
 	async updateStates(reading) {
+		this.log(`${this.getName()} updateStates - ${reading.year}:${reading.month}:${reading.day}:${reading.hour}=${reading.meterValue}`);
 		// check app init
-		const appInit = (!this.lastReadingHour || !this.lastReadingDay || !this.lastReadingMonth || !this.lastReadingYear);
-		if (appInit) {
-			this.log(`${this.getName()} restoring values after app init`);
-			this.lastReadingHour = this.getStoreValue('lastReadingHour');
-			this.lastReadingDay = this.getStoreValue('lastReadingDay');
-			this.lastReadingMonth = this.getStoreValue('lastReadingMonth');
-			this.lastReadingYear = this.getStoreValue('lastReadingYear');
-			this.log("...lastReadingHour:"+this.lastReadingHour)
-			// check pair init
-			const pairInit = (!this.lastReadingHour || !this.lastReadingDay || !this.lastReadingMonth || !this.lastReadingYear);
-			if (pairInit) {
-				this.log(`${this.getName()} setting values after pair init`);
-				await this.setStoreValue('lastReadingHour', reading);
-				this.lastReadingHour = reading;
-				const dayStart = this.getSettings().homey_device_daily_reset ? this.getReadingObject(0) : reading;
-				await this.setStoreValue('lastReadingDay', dayStart);
-				this.lastReadingDay = dayStart;
-				await this.setStoreValue('lastReadingMonth', reading);
-				this.lastReadingMonth = reading;
-				await this.setStoreValue('lastReadingYear', reading);
-				this.lastReadingYear = reading;
-			}
-			// set meter start in device settings
-			await this.setSettings({ meter_latest: `${reading.meterValue}` });
-			await this.setSettings({ meter_day_start: this.lastReadingDay.meterValue });
-			await this.setSettings({ meter_month_start: this.lastReadingMonth.meterValue });
-			await this.setSettings({ meter_year_start: this.lastReadingYear.meterValue });
+		if (!this.lastReadingHour) {
+			this.log(`${this.getName()} setting value lastReadingHour after pair init`);
+			await this.setStoreValue('lastReadingHour', reading);
+			this.lastReadingHour = reading;
+		}
+		// set meter start in device settings
+		await this.setSettings({ meter_latest: `${reading.meterValue}` });
+		// check pair init
+		if (!this.lastReadingDay) {
+			this.log(`${this.getName()} setting value lastReadingDay after pair init`);
+			await this.setStoreValue('lastReadingDay', reading);
+			this.lastReadingDay = reading;
+		}
+		// set meter start in device settings
+		const dayStart = this.getSettings().homey_device_daily_reset ? this.getReadingObject(0) : reading;
+		await this.setStoreValue('lastReadingDay', dayStart);
+		// check pair init
+		if (!this.lastReadingMonth) {
+			this.log(`${this.getName()} setting value lastReadingMonth after pair init`);
+			await this.setStoreValue('lastReadingMonth', reading);
+			this.lastReadingMonth = reading;
+		}
+		// check pair init
+		if (!this.lastReadingYear) {
+			this.log(`${this.getName()} setting value lastReadingYear after pair init`);
+			await this.setStoreValue('lastReadingYear', reading);
+			this.lastReadingYear = reading;
 		}
 		// calculate delta
 		const valHour = reading.meterValue - this.lastReadingHour.meterValue;
 		const valDay = reading.meterValue - this.lastReadingDay.meterValue;
 		const valMonth = reading.meterValue - this.lastReadingMonth.meterValue;
 		const valYear = reading.meterValue - this.lastReadingYear.meterValue;
+		if (valHour < 0 || valDay < 0 || valMonth || valYear < 0) return;
 		// check for new hour, day, month year
 		const newHour = reading.hour !== this.lastReadingHour.hour;
 		const newDay = (reading.day !== this.lastReadingDay.day);
@@ -269,17 +273,18 @@ class SumMeterDevice extends Device {
 		// set capabilities
 		if (!newHour) {
 			this.setCapability(this.ds.cmap.this_hour_total, valHour);
+			await this.setSettings({ meter_latest: `${valHour}` });
 		} else {
 			// new hour started
-			// console.log('new hour started');
+			this.log('new hour started');
 			this.setCapability(this.ds.cmap.this_hour_total, 0);
 			this.setCapability(this.ds.cmap.last_hour_total, valHour);
 			await this.setStoreValue('lastReadingHour', reading);
-			await this.setSettings({ meter_latest: `${reading.meterValue}` });
 			this.lastReadingHour = reading;
 		}
 		if (!newDay) {
 			this.setCapability(this.ds.cmap.this_day_total, valDay);
+			await this.setSettings({ meter_day_start: this.lastReadingDay.meterValue });
 		} else {
 			// new day started
 			this.log('new day started');
@@ -287,10 +292,10 @@ class SumMeterDevice extends Device {
 			this.setCapability(this.ds.cmap.last_day_total, valDay);
 			await this.setStoreValue('lastReadingDay', reading);
 			this.lastReadingDay = reading;
-			await this.setSettings({ meter_day_start: this.lastReadingDay.meterValue });
 		}
 		if (!newMonth) {
 			this.setCapability(this.ds.cmap.this_month_total, valMonth);
+			await this.setSettings({ meter_month_start: this.lastReadingMonth.meterValue });
 		} else {
 			// new month started
 			this.log('new month started');
@@ -298,10 +303,10 @@ class SumMeterDevice extends Device {
 			this.setCapability(this.ds.cmap.last_month_total, valMonth);
 			await this.setStoreValue('lastReadingMonth', reading);
 			this.lastReadingMonth = reading;
-			await this.setSettings({ meter_month_start: this.lastReadingMonth.meterValue });
 		}
 		if (!newYear) {
 			this.setCapability(this.ds.cmap.this_year_total, valYear);
+			await this.setSettings({ meter_year_start: this.lastReadingYear.meterValue });
 		} else {
 			// new year started
 			this.log('new year started');
@@ -309,7 +314,6 @@ class SumMeterDevice extends Device {
 			this.setCapability(this.ds.cmap.last_year_total, valYear);
 			await this.setStoreValue('lastReadingYear', reading);
 			this.lastReadingYear = reading;
-			await this.setSettings({ meter_year_start: this.lastReadingYear.meterValue });
 		}
 
 	}
